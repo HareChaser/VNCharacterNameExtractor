@@ -1,7 +1,7 @@
 # Visual Novel Character Name Extractor
 
 A simple web-based tool to quickly extract character names (Japanese and Romaji) and their genders from a visual novel's page on the [Visual Novel Database (VNDB)](https://vndb.org).
-The main purpose is to create a prompt for Large Language Model to translate the visual novel but you can use the information however you want.
+The main purpose is to create a prompt for Large Language Model to translate the visual novel.
 
 https://github.com/user-attachments/assets/729cd9df-66ed-44ba-8ca7-7955ed806240
 
