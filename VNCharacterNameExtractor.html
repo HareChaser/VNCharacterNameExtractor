@@ -1,10 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visual Novel Character Name Extractor</title>
+    <title>VNDB Character Info Extractor</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -42,7 +43,6 @@
             height: 100%; /* Full height */
             overflow: auto; /* Enable scroll if needed */
             background-color: rgba(0,0,0,0.5); /* Black w/ opacity */
-            padding-top: 60px;
             align-items: center; /* For centering modal content */
             justify-content: center; /* For centering modal content */
         }
@@ -93,8 +93,8 @@
 
     <div class="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-3xl">
         <header class="mb-6 sm:mb-8 text-center">
-            <h1 class="text-3xl sm:text-4xl font-bold text-gray-800">Visual Novel Character Name Extractor</h1>
-            <p class="text-gray-600 mt-2">Enter a VNDB visual novel ID, URL, or character page URL to extract names and genders.</p>
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-800">VNDB Character Name Extractor</h1>
+            <p class="text-gray-600 mt-2">Enter a VNDB visual novel ID or URL to extract character names and genders.</p>
         </header>
 
         <main>
@@ -102,18 +102,23 @@
                 <label for="vndbUrl" class="block text-sm font-medium text-gray-700 mb-1">
                     VNDB ID or URL:
                 </label>
-                <input type="text" id="vndbUrl" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out" placeholder="e.g., 16845, v16845, or https://vndb.org/v16845">
+                <input type="text" id="vndbUrl" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out" placeholder="e.g., 17, v17, or https://vndb.org/v17">
                  <p class="text-xs text-gray-500 mt-2">
-                    You can enter a VN ID (e.g., 16845), a full VN URL, or a direct character page URL (.../chars).
+                    You can enter a VN ID (e.g., 17) or a full VN URL (e.g., https://vndb.org/v17).
                 </p>
             </div>
 
-            <div class="text-center mb-6">
+            <div class="text-center mb-3"> 
                 <button id="extractButton" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 transition duration-150 ease-in-out transform hover:scale-105">
                     Extract Character Info
                     <span id="loadingSpinner" class="loader" style="display: none;"></span>
                 </button>
             </div>
+            <div class="mb-6 flex items-center justify-center"> 
+                <input type="checkbox" id="includeGameDescriptionCheckbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                <label for="includeGameDescriptionCheckbox" class="ml-2 block text-sm text-gray-900">Include game description</label>
+            </div>
+
 
             <div>
                 <h2 class="text-xl sm:text-2xl font-semibold text-gray-700 mb-3">Extracted Information:</h2>
@@ -128,14 +133,14 @@
                     <textarea id="templateText" rows="4" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out" placeholder="Enter your template text here. Extracted info will be appended on a new line."></textarea>
                 </div>
 
-                <div class="mb-6 flex items-center">
+                <div class="mb-6 flex items-center"> 
                     <input type="checkbox" id="includeTemplateCheckbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
                     <label for="includeTemplateCheckbox" class="ml-2 block text-sm text-gray-900">Include template in output</label>
                 </div>
                 
                 <div class="mb-4">
-                    <label for="fileNameInput" class="block text-sm font-medium text-gray-700 mb-1">Filename (e.g., MyGame_Characters, .txt will be added):</label>
-                    <input type="text" id="fileNameInput" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out" placeholder="Default: [GameTitle]_Characters">
+                    <label for="fileNameInput" class="block text-sm font-medium text-gray-700 mb-1">Filename (.txt will be added):</label>
+                    <input type="text" id="fileNameInput" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out" placeholder="Default: [VN_Title]_Characters">
                 </div>
 
                 <div class="flex flex-col sm:flex-row sm:space-x-4 space-y-3 sm:space-y-0 mb-6">
@@ -146,10 +151,11 @@
                         Save to File
                     </button>
                 </div>
-            </div> </main>
+            </div>
+        </main>
         
         <footer class="mt-8 text-center border-t border-gray-200 pt-6">
-            <p class="text-xs text-gray-500">Note: This tool relies on fetching external content and parsing its HTML. Changes in VNDB's page structure or the availability of the CORS proxy might affect its functionality. Cached data is stored in your browser.</p>
+            <p class="text-xs text-gray-500">Note: This tool uses the official VNDB API. Rate limits may apply. Cached data is stored in your browser.</p>
              <div class="mt-4">
                 <button id="saveSettingsButton" class="bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md text-xs focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-opacity-50 transition duration-150 ease-in-out">
                     Save Settings
@@ -158,23 +164,24 @@
         </footer>
     </div>
 
-    <div id="messageModal" class="modal" style="display:none;"> <div class="modal-content">
+    <div id="messageModal" class="modal">
+        <div class="modal-content">
             <span class="modal-close" onclick="closeModal('messageModal')">&times;</span>
             <p id="modalMessageText" class="text-gray-700"></p>
             <button onclick="closeModal('messageModal')" class="mt-4 bg-indigo-500 text-white py-2 px-4 rounded-lg hover:bg-indigo-600 transition duration-150">OK</button>
         </div>
     </div>
 
-    <div id="confirmLoadModal" class="modal" style="display:none;"> <div class="modal-content">
+    <div id="confirmLoadModal" class="modal">
+        <div class="modal-content">
             <span class="modal-close" onclick="closeModal('confirmLoadModal')">&times;</span>
             <p id="confirmLoadMessageText" class="text-gray-700 mb-4"></p>
             <div class="flex flex-col sm:flex-row justify-around space-y-3 sm:space-y-0 sm:space-x-3">
                 <button id="loadFromCacheButton" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg w-full sm:w-auto">Load from Cache</button>
-                <button id="fetchOnlineButton" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg w-full sm:w-auto">Fetch Online</button>
+                <button id="fetchOnlineButton" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg w-full sm:w-auto">Fetch Online (API)</button>
             </div>
         </div>
     </div>
-
 
     <script>
         // Get DOM elements
@@ -192,6 +199,7 @@
         // Output options elements
         const templateText = document.getElementById('templateText');
         const includeTemplateCheckbox = document.getElementById('includeTemplateCheckbox');
+        const includeGameDescriptionCheckbox = document.getElementById('includeGameDescriptionCheckbox'); // Renamed
         const copyButton = document.getElementById('copyButton');
         const fileNameInput = document.getElementById('fileNameInput');
         const saveFileButton = document.getElementById('saveFileButton');
@@ -199,27 +207,24 @@
 
         let currentVNDBGameTitle = ''; 
 
-        // Function to show a specific modal
+        const VNDB_API_CHAR_URL = 'https://api.vndb.org/kana/character';
+        const VNDB_API_VN_URL = 'https://api.vndb.org/kana/vn'; 
+
         function showModal(modalId, message) {
             const modal = document.getElementById(modalId);
-            if (modalId === 'messageModal') {
-                modalMessageText.textContent = message;
-            } else if (modalId === 'confirmLoadModal') {
-                confirmLoadMessageText.textContent = message;
-            }
-            if (modal) modal.style.display = 'flex'; // Use flex for centering
+            if (modalId === 'messageModal') modalMessageText.textContent = message;
+            else if (modalId === 'confirmLoadModal') confirmLoadMessageText.textContent = message;
+            if (modal) modal.style.display = 'flex';
         }
 
-        // Function to close a specific modal
         function closeModal(modalId) {
             const modal = document.getElementById(modalId);
             if (modal) modal.style.display = 'none';
         }
         
         window.onclick = function(event) {
-            if (event.target == messageModal) {
-                closeModal('messageModal');
-            }
+            if (event.target == messageModal) closeModal('messageModal');
+            if (event.target == confirmLoadModal) closeModal('confirmLoadModal');
         }
         
         function setLoading(isLoading) {
@@ -230,15 +235,18 @@
         }
 
         function loadSettings() {
-            templateText.value = localStorage.getItem('vndbExtractorTemplate') || '';
-            includeTemplateCheckbox.checked = localStorage.getItem('vndbExtractorIncludeTemplate') === 'true';
-            fileNameInput.value = localStorage.getItem('vndbExtractorFileName') || '';
+            templateText.value = localStorage.getItem('vndbApiExtractorTemplate') || '';
+            includeTemplateCheckbox.checked = localStorage.getItem('vndbApiExtractorIncludeTemplate') === 'true';
+            // Default to unchecked if not set or set to 'false' for game description
+            includeGameDescriptionCheckbox.checked = localStorage.getItem('vndbApiExtractorIncludeGameDescription') === 'true'; 
+            fileNameInput.value = localStorage.getItem('vndbApiExtractorFileName') || '';
         }
 
         function saveSettings() {
-            localStorage.setItem('vndbExtractorTemplate', templateText.value);
-            localStorage.setItem('vndbExtractorIncludeTemplate', includeTemplateCheckbox.checked);
-            localStorage.setItem('vndbExtractorFileName', fileNameInput.value);
+            localStorage.setItem('vndbApiExtractorTemplate', templateText.value);
+            localStorage.setItem('vndbApiExtractorIncludeTemplate', includeTemplateCheckbox.checked);
+            localStorage.setItem('vndbApiExtractorIncludeGameDescription', includeGameDescriptionCheckbox.checked); // Save game description preference
+            localStorage.setItem('vndbApiExtractorFileName', fileNameInput.value);
             showModal('messageModal', 'Settings saved successfully!');
         }
 
@@ -283,8 +291,8 @@
                 return;
             }
             let filename = fileNameInput.value.trim();
-            if (!filename) {
-                filename = (currentVNDBGameTitle || "VNDB_Export") + "_Characters";
+            if (!filename) { 
+                filename = (currentVNDBGameTitle || "VNDB_API_Export") + "_Characters";
             }
             filename = filename.replace(/\.txt$/i, "") + ".txt"; 
             const blob = new Blob([textToSave], { type: 'text/plain;charset=utf-8' });
@@ -295,189 +303,230 @@
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(link.href); 
-            showModal('messageModal', `Content prepared for download as ${filename}`);
+            // Removed success modal for saving file as per request to remove success dialogs
+        }
+        
+        function getVnId(input) {
+            if (!input) return null;
+            const urlMatch = input.match(/vndb\.org\/(v\d+)/);
+            if (urlMatch && urlMatch[1]) return urlMatch[1];
+            if (/^v\d+$/.test(input)) return input;
+            if (/^\d+$/.test(input)) return `v${input}`;
+            return null;
         }
 
-        function getStorageKey(url) {
-            try {
-                const parsedUrl = new URL(url); // Expects a full, valid URL
-                const pathname = parsedUrl.pathname;
-                // Match /vXXXX or /cXXXX at the start of the pathname
-                const vMatch = pathname.match(/^\/(v\d+)/);
-                if (vMatch && vMatch[1]) return `vndb-cache-${vMatch[1]}`;
-                const cMatch = pathname.match(/^\/(c\d+)/);
-                if (cMatch && cMatch[1]) return `vndb-cache-${cMatch[1]}`;
-                
-                // Fallback for URLs that might be just domain + ID, e.g. after ID-only input
-                // This part might be redundant if `processedUrl` is always a full path by now
-                const idOnlyMatch = pathname.match(/^\/([vc]\d+)$/);
-                if (idOnlyMatch && idOnlyMatch[1]) return `vndb-cache-${idOnlyMatch[1]}`;
-
-                console.warn("Could not derive a v/c ID from path for storage key:", pathname);
-                return null; 
-            } catch (e) {
-                console.error("Error parsing URL for storage key:", url, e);
-                return null;
-            }
+        function getStorageKey(vnId) {
+            if (!vnId) return null;
+            return `vndb-api-cache-${vnId}`;
         }
         
         function updateFileNameInputBasedOnGameTitle() {
-            if (currentVNDBGameTitle && currentVNDBGameTitle !== "VNDB_Export") {
+            if (currentVNDBGameTitle) { 
                 fileNameInput.value = currentVNDBGameTitle + "_Characters";
-            } else {
+            } else { 
                 const currentFileNameVal = fileNameInput.value.trim();
-                if (!currentFileNameVal || currentFileNameVal === "VNDB_Export_Characters") {
-                    fileNameInput.value = "VNDB_Export_Characters";
+                if (!currentFileNameVal || currentFileNameVal.endsWith("_Characters")) {
+                     fileNameInput.value = "VNDB_API_Export_Characters";
                 }
             }
         }
 
-        async function performActualFetch(urlToFetch, originalProcessedUrlForCache, storageKeyToUse) {
+        function stripFormatting(text) {
+            if (!text) return '';
+            let cleanText = text;
+            const bbRegex = /\[([a-zA-Z0-9]+)(?:=[^\]]*)?\]([\s\S]*?)\[\/\1\]/gi;
+            while (bbRegex.test(cleanText)) {
+                 cleanText = cleanText.replace(bbRegex, '$2');
+            }
+            cleanText = cleanText.replace(/\[url=[^\]]*\](.*?)\[\/url\]/gi, '$1');
+            cleanText = cleanText.replace(/\[\/?(?:[a-zA-Z0-9]+|spoiler)\b[^\]]*\]/gi, '');
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = cleanText;
+            cleanText = tempDiv.textContent || tempDiv.innerText || "";
+            return cleanText.trim();
+        }
+
+        function getGivenNameForSentence(romajiName, originalName) {
+            if (!romajiName) return 'Character';
+            const romajiParts = romajiName.split(' ').filter(part => part.length > 0);
+            if (romajiParts.length === 0) return romajiName;
+            if (romajiParts.length === 1) return romajiParts[0];
+            let romajiIsFamilyGivenOrder = true; 
+            if (originalName) {
+                const allKatakanaRegex = /^[\u30A0-\u30FF\uFF65-\uFF9F\u30FB\u30FC\uFF1D\s]+$/;
+                if (allKatakanaRegex.test(originalName)) {
+                    romajiIsFamilyGivenOrder = false; 
+                }
+            }
+            let givenName;
+            if (romajiIsFamilyGivenOrder) {
+                givenName = romajiParts.slice(1).join(' ');
+            } else {
+                givenName = romajiParts[0];
+                if (givenName.includes('-')) {
+                    givenName = givenName.split('-')[0];
+                }
+            }
+            return givenName.trim() || romajiParts[0];
+        }
+
+
+        async function performActualFetch(vnIdToFetch, originalInputForCache, storageKeyToUse) {
             setLoading(true);
             resultsPre.textContent = ''; 
-            const proxyUrl = 'https://api.allorigins.win/raw?url='; 
-            const fullFetchUrl = proxyUrl + encodeURIComponent(urlToFetch);
+            
+            let vnTitleForFilename = vnIdToFetch; 
+            let gameDescriptionText = '';
 
+            // Fetch VN title and description (if checkbox is checked)
             try {
-                const response = await fetch(fullFetchUrl);
-                if (!response.ok) {
-                    let errorText = `Failed to fetch URL: ${response.status} ${response.statusText}.`;
-                    try {
-                        const errorData = await response.json(); 
-                        if (errorData && errorData.error) {
-                            errorText += ` Proxy error: ${errorData.error}`;
-                        } else if (errorData && errorData.contents) {
-                            const innerStatus = JSON.parse(errorData.contents)?.status?.http_code;
-                            if (innerStatus === 403) errorText += ` The target server (VNDB) may be blocking this proxy (HTTP 403).`;
-                            else if (innerStatus === 404) errorText += ` The target page was not found on VNDB (HTTP 404). Check the URL.`;
-                        }
-                    } catch (e) { 
-                        const responseText = await response.text();
-                         if (responseText.includes("Cloudflare") || responseText.includes("Access denied")) {
-                            errorText += " Access to VNDB via proxy may be blocked by security measures (e.g., Cloudflare).";
-                         }
-                    }
-                    errorText += " The CORS proxy might be down, rate-limiting, or the URL is inaccessible/blocking the proxy.";
-                    throw new Error(errorText);
+                const vnFieldsToFetch = ["title"];
+                if (includeGameDescriptionCheckbox.checked) {
+                    vnFieldsToFetch.push("description");
                 }
-                const htmlContent = await response.text();
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = htmlContent;
 
-                let extractedGameTitleFull = 'VNDB_Export'; 
-                let mainTitleElement = tempDiv.querySelector('div.titlebar > h1 > a[href^="/v"]'); 
-                if (!mainTitleElement) mainTitleElement = tempDiv.querySelector('div.charpage > div > h1 > a[href^="/v"]');
-                if (!mainTitleElement) mainTitleElement = tempDiv.querySelector('h1.لیکنه'); 
-                if (mainTitleElement && mainTitleElement.textContent) {
-                     extractedGameTitleFull = mainTitleElement.textContent.trim();
-                } else { 
-                    const titleTag = tempDiv.querySelector('title');
-                    if (titleTag && titleTag.textContent) {
-                        let pageTitle = titleTag.textContent.trim();
-                        const vndbSuffix = "(vndb.org)";
-                        if (pageTitle.endsWith(vndbSuffix)) pageTitle = pageTitle.substring(0, pageTitle.length - vndbSuffix.length).trim();
-                        const charsFromPrefix = "Characters from ";
-                        if (pageTitle.startsWith(charsFromPrefix)) extractedGameTitleFull = pageTitle.substring(charsFromPrefix.length).trim();
-                        else {
-                            const charPageSuffix = " - Characters"; 
-                            if (pageTitle.endsWith(charPageSuffix)) extractedGameTitleFull = pageTitle.substring(0, pageTitle.length - charPageSuffix.length).trim();
-                            else extractedGameTitleFull = pageTitle; 
-                        }
-                    }
-                }
-                currentVNDBGameTitle = extractedGameTitleFull.replace(/[<>:"/\\|?*]+/g, '').replace(/\s+/g, '_');
-                
-                const charDetailDivs = tempDiv.querySelectorAll('div.chardetails, div.charbox'); 
-                if (charDetailDivs.length === 0) {
-                    showModal('messageModal', 'No character details found. Ensure the URL is correct, the page has character data, or the proxy retrieved the page correctly.');
-                    setLoading(false); return;
-                }
-                let outputText = '';
-                let charactersFound = 0;
-                charDetailDivs.forEach(charDiv => {
-                    let japNameElement, romajiNameElement, genderElement;
-                    let tableHeaderTd = charDiv.querySelector('table.stripe > thead > tr > td');
-                    if (tableHeaderTd) {
-                        japNameElement = tableHeaderTd.querySelector('small[lang="ja"]');
-                        romajiNameElement = tableHeaderTd.querySelector('a[lang="ja-Latn"]');
-                        genderElement = tableHeaderTd.querySelector('abbr[title^="Sex:"]');
-                    }
-                    if (!romajiNameElement && charDiv.classList.contains('charbox')) {
-                        const charNameDiv = charDiv.querySelector('.charname');
-                        if (charNameDiv) {
-                            romajiNameElement = charNameDiv.querySelector('a'); 
-                            japNameElement = charNameDiv.querySelector('small[lang="ja"]');
-                        }
-                        const charInfoDiv = charDiv.closest('.charpage')?.querySelector('.charinfo'); 
-                        if (charInfoDiv) {
-                            const sexInfoNode = Array.from(charInfoDiv.querySelectorAll('tr > td')).find(td => td.textContent.trim().startsWith("Sex"));
-                            if (sexInfoNode && sexInfoNode.nextElementSibling) {
-                                const genderText = sexInfoNode.nextElementSibling.textContent.trim();
-                                if (genderText.includes("Female") || genderText.includes("♀")) genderElement = { getAttribute: () => "Sex: female" };
-                                else if (genderText.includes("Male") || genderText.includes("♂")) genderElement = { getAttribute: () => "Sex: male" };
-                                else genderElement = { getAttribute: () => "Sex: unknown" };
-                            }
-                        }
-                    }
-
-                    if (romajiNameElement) { 
-                        const romajiName = romajiNameElement.textContent.trim();
-                        const japName = japNameElement ? japNameElement.textContent.trim() : "(N/A)";
-                        let gender = 'unknown';
-                        if (genderElement) {
-                            const genderTitle = genderElement.getAttribute('title'); 
-                            if (genderTitle) {
-                                const genderMatch = genderTitle.match(/Sex: (\w+)/i); 
-                                if (genderMatch && genderMatch[1]) gender = genderMatch[1].toLowerCase();
-                            }
-                        }
-                        const displayRomajiName = romajiName; 
-                        const romajiParts = romajiName.split(' ').filter(part => part.length > 0); 
-                        let nameForGenderSentence;
-                        if (romajiParts.length === 0) nameForGenderSentence = romajiName; 
-                        else if (romajiParts.length === 1) nameForGenderSentence = romajiParts[0]; 
-                        else {
-                            let isSurnameFirstOrder = true; 
-                            if (japName && japName !== "(N/A)") {
-                                const allKatakanaRegex = /^[\u30A0-\u30FF\uFF66-\uFF9F\u31F0-\u31FF\u30FB\u30FC\s＝=]+$/;
-                                if (allKatakanaRegex.test(japName)) isSurnameFirstOrder = false; 
-                            }
-                            if (isSurnameFirstOrder) nameForGenderSentence = romajiParts.slice(1).join(' ');
-                            else {
-                                nameForGenderSentence = romajiParts[0];
-                                if (nameForGenderSentence.includes('-')) nameForGenderSentence = nameForGenderSentence.split('-')[0];
-                            }
-                        }
-                        if (!nameForGenderSentence || nameForGenderSentence.trim() === "") { 
-                            nameForGenderSentence = romajiParts.length > 0 ? romajiParts[0] : romajiName;
-                        }
-                        outputText += `${japName} is called ${displayRomajiName}. ${nameForGenderSentence} is ${gender}.\n`;
-                        charactersFound++;
-                    }
+                const vnInfoRequestBody = {
+                    fields: vnFieldsToFetch.join(', '), 
+                    filters: ["id", "=", vnIdToFetch],
+                    results: 1
+                };
+                const vnResponse = await fetch(VNDB_API_VN_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(vnInfoRequestBody),
                 });
 
-                if (charactersFound > 0) {
-                    resultsPre.textContent = outputText;
-                    updateFileNameInputBasedOnGameTitle(); 
+                if (vnResponse.ok) {
+                    const vnData = await vnResponse.json();
+                    if (vnData.results && vnData.results.length > 0) {
+                        const vnResult = vnData.results[0];
+                        if (vnResult.title) {
+                            vnTitleForFilename = vnResult.title
+                                .replace(/[<>:"/\\|?*]+/g, '') 
+                                .replace(/\s+/g, '_');        
+                        }
+                        if (includeGameDescriptionCheckbox.checked && vnResult.description) {
+                            gameDescriptionText = stripFormatting(vnResult.description);
+                        }
+                    }
+                } else {
+                    console.warn(`Failed to fetch VN info for ${vnIdToFetch}: ${vnResponse.status}`);
+                    // Don't show error modal here, proceed to character fetch
+                }
+            } catch (vnError) {
+                console.error(`Error fetching VN info for ${vnIdToFetch}:`, vnError);
+            }
+            currentVNDBGameTitle = vnTitleForFilename; 
+            updateFileNameInputBasedOnGameTitle();
+
+            // Fetch character data
+            const requestBody = {
+                fields: "name, original, gender, description", // Keep character description field for potential use
+                filters: ["vn", "=", ["id", "=", vnIdToFetch]],
+                results: 100, 
+                sort: "id", 
+                reverse: false
+            };
+
+            try {
+                const response = await fetch(VNDB_API_CHAR_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody),
+                });
+
+                if (!response.ok) {
+                    // ... (error handling for character fetch remains the same)
+                    let errorBodyText = ''; 
+                    try { errorBodyText = await response.text(); } 
+                    catch (textError) { console.error("Failed to read error response body:", textError); }
+                    let parsedErrorData = null;
+                    if (errorBodyText) {
+                        try { parsedErrorData = JSON.parse(errorBodyText); } 
+                        catch (jsonParseError) { console.warn("Error response body was not valid JSON:", errorBodyText.substring(0, 200));}
+                    }
+                    let errorMessage = `API Request Failed for characters: ${response.status} ${response.statusText || ''}`.trim();
+                    if (parsedErrorData && parsedErrorData.id && parsedErrorData.msg) {
+                        errorMessage = `VNDB API Error (characters, ${response.status}): ${parsedErrorData.id} - ${parsedErrorData.msg}`;
+                    } else if (parsedErrorData && parsedErrorData.message) {
+                        errorMessage += ` - Server Message: ${parsedErrorData.message}`;
+                    } else if (errorBodyText && !(parsedErrorData && parsedErrorData.id && parsedErrorData.msg)) {
+                        const cleanBodyText = errorBodyText.replace(/<[^>]*>/g, '').trim();
+                        if (cleanBodyText.length > 0) {
+                           errorMessage += ` - Server Response: ${cleanBodyText.substring(0, 150)}${cleanBodyText.length > 150 ? '...' : ''}`;
+                        }
+                    }
+                    throw new Error(errorMessage);
+                }
+
+                const data = await response.json();
+                let characterOutputText = '';
+                let charactersFound = 0;
+
+                if (data.results && data.results.length > 0) {
+                    data.results.forEach(char => {
+                        const romajiName = char.name || 'N/A';
+                        const originalName = char.original || romajiName;
+                        
+                        let mappedGender = 'unknown'; 
+                        let genderIndicator = char.gender;
+
+                        if (Array.isArray(genderIndicator) && genderIndicator.length > 0) {
+                            genderIndicator = genderIndicator[0]; 
+                        }
+                        
+                        if (genderIndicator === 'm') mappedGender = 'male';
+                        else if (genderIndicator === 'f') mappedGender = 'female';
+                        else if (genderIndicator === 'b') mappedGender = 'both';
+                        else if (genderIndicator === 'u') mappedGender = 'unknown';
+                        else if (genderIndicator === 'a') mappedGender = 'animal'; // New mapping
+                        
+                        const nameForSentence = getGivenNameForSentence(romajiName, originalName);
+                        let charBlock = `${originalName} is called ${romajiName}. ${nameForSentence} is ${mappedGender}.`;
+                        
+                        // Character description is no longer added here directly
+                        // It's handled by the game description checkbox now.
+                        // If you wanted individual character descriptions with the new checkbox, this would need adjustment.
+                        // For now, assuming the checkbox is for *game* description only.
+
+                        characterOutputText += charBlock + "\n"; 
+                        charactersFound++;
+                    });
+                }
+                
+                let finalOutputText = '';
+                if (includeGameDescriptionCheckbox.checked && gameDescriptionText) {
+                    finalOutputText = `Here is the story description:\n${gameDescriptionText}\n\nHere are characters in the story:\n`;
+                }
+                finalOutputText += characterOutputText.trimEnd();
+
+
+                if (charactersFound > 0 || (includeGameDescriptionCheckbox.checked && gameDescriptionText) ) {
+                    resultsPre.textContent = finalOutputText.trimEnd(); 
                     if (storageKeyToUse) { 
                         try {
                             localStorage.setItem(storageKeyToUse, JSON.stringify({
-                                outputText: outputText,
-                                gameTitle: currentVNDBGameTitle,
-                                originalUrl: originalProcessedUrlForCache, // Use the processed full URL for cache
-                                timestamp: new Date().toISOString()
+                                // Store components separately for flexible reconstruction from cache
+                                characterOutputText: characterOutputText.trimEnd(), 
+                                gameDescriptionText: gameDescriptionText, // Store fetched game description
+                                gameTitle: vnTitleForFilename, 
+                                originalUrl: originalInputForCache,
+                                timestamp: new Date().toISOString(),
+                                includeGameDescription: includeGameDescriptionCheckbox.checked // Store preference for game description
                             }));
                         } catch (e) {
                             console.error("Error saving to localStorage:", e);
                             showModal('messageModal', "Could not save data to local cache. Storage might be full.");
                         }
                     }
+                    // Removed success dialog as requested
                 } else {
-                    showModal('messageModal', 'Could not extract character information from the fetched content.');
+                    resultsPre.textContent = 'No information found for this VN ID via API.';
+                    showModal('messageModal', 'No information found for this VN ID, or the ID is invalid.');
                 }
 
             } catch (error) {
-                console.error('Error during fetch or parsing:', error);
+                console.error('Error during API fetch or parsing:', error);
                 resultsPre.textContent = `Error: ${error.message}`;
                 showModal('messageModal', `An error occurred: ${error.message}.`);
             } finally {
@@ -492,40 +541,14 @@
                 showModal('messageModal', 'Please enter a VNDB ID or URL.');
                 return;
             }
-
-            let processedUrl = userInput;
-            // Check for vXXXXX or XXXXX patterns and construct full URL
-            if (/^v\d+$/.test(userInput)) { // Matches "v12345"
-                processedUrl = `https://vndb.org/${userInput}`;
-            } else if (/^\d+$/.test(userInput)) { // Matches "12345"
-                processedUrl = `https://vndb.org/v${userInput}`;
-            }
-            // Now processedUrl is either a user-entered full URL or a constructed one.
-
-            // Validate the processedUrl format before proceeding
-            try {
-                new URL(processedUrl); 
-                if (!processedUrl.startsWith('https://vndb.org/')) {
-                     showModal('messageModal', 'Invalid input. Please ensure it is a valid VNDB ID (e.g., 12345, v12345) or a full VNDB URL.');
-                     return;
-                }
-            } catch (_) {
-                showModal('messageModal', 'Invalid input format. Please enter a valid VNDB ID or URL.');
+            const vnId = getVnId(userInput);
+            if (!vnId) {
+                showModal('messageModal', 'Invalid VNDB ID or URL format. Please use e.g., "17", "v17", or "https://vndb.org/v17".');
                 return;
             }
-
-            let fetchTargetUrl = processedUrl;
-            let originalUrlForCache = processedUrl; // This is the full URL to store/use for cache key
-
-            try { // Auto-append /chars if necessary to the processed URL
-                const parsedTempUrl = new URL(processedUrl);
-                if (parsedTempUrl.hostname === 'vndb.org' && parsedTempUrl.pathname.match(/^\/v\d+$/)) {
-                    fetchTargetUrl = processedUrl.replace(/\/$/, "") + '/chars';
-                }
-                // If it's already /vXXXX/chars or /cXXXX, fetchTargetUrl remains as processedUrl
-            } catch (_) { /* Should not happen if previous validation passed */ }
-
-            const storageKey = getStorageKey(originalUrlForCache); // Use the processed full URL for key consistency
+            
+            const originalInputForCacheKey = userInput; 
+            const storageKey = getStorageKey(vnId); 
             let cachedData = null;
 
             if (storageKey) {
@@ -536,8 +559,16 @@
                 }
             }
 
-            if (cachedData && cachedData.outputText && cachedData.gameTitle) {
-                showModal('confirmLoadModal', "Previously extracted data found for this ID/URL. Load from cache or fetch fresh data online?");
+            if (cachedData && (cachedData.characterOutputText || cachedData.gameDescriptionText) && cachedData.gameTitle) {
+                const cachedIncludeGameDescription = cachedData.includeGameDescription === undefined ? false : cachedData.includeGameDescription; 
+                
+                let confirmMessage = `Previously extracted data found for "${cachedData.gameTitle}". `;
+                if (cachedIncludeGameDescription === includeGameDescriptionCheckbox.checked) {
+                    confirmMessage += "Load from cache or fetch fresh data online?";
+                } else {
+                     confirmMessage += "Game description preference differs. Load from cache (with old preference) or fetch fresh data online (with current preference)?";
+                }
+                showModal('confirmLoadModal', confirmMessage);
                 
                 const loadCacheBtn = document.getElementById('loadFromCacheButton');
                 const fetchOnlineBtn = document.getElementById('fetchOnlineButton');
@@ -546,11 +577,16 @@
                 loadCacheBtn.parentNode.replaceChild(newLoadCacheBtn, loadCacheBtn);
                 newLoadCacheBtn.onclick = () => {
                     closeModal('confirmLoadModal');
-                    resultsPre.textContent = cachedData.outputText;
-                    currentVNDBGameTitle = cachedData.gameTitle;
-                    urlInput.value = cachedData.originalUrl || originalUrlForCache; // Restore original processed URL
+                    let finalCachedOutput = cachedData.characterOutputText || '';
+                    if (cachedData.includeGameDescription && cachedData.gameDescriptionText) {
+                        finalCachedOutput = `Here is the story description:\n${cachedData.gameDescriptionText}\n\nHere are characters in the story:\n${cachedData.characterOutputText || ''}`;
+                    }
+                    resultsPre.textContent = finalCachedOutput.trimEnd();
+                    currentVNDBGameTitle = cachedData.gameTitle; 
+                    urlInput.value = cachedData.originalUrl || vnId; 
+                    includeGameDescriptionCheckbox.checked = cachedIncludeGameDescription; 
                     updateFileNameInputBasedOnGameTitle();
-                    showModal('messageModal', 'Data loaded from cache.');
+                    // Removed success dialog for loading from cache
                     setLoading(false); 
                 };
 
@@ -558,15 +594,13 @@
                 fetchOnlineBtn.parentNode.replaceChild(newFetchOnlineBtn, fetchOnlineBtn);
                 newFetchOnlineBtn.onclick = () => {
                     closeModal('confirmLoadModal');
-                    performActualFetch(fetchTargetUrl, originalUrlForCache, storageKey);
+                    performActualFetch(vnId, originalInputForCacheKey, storageKey);
                 };
-
             } else {
-                performActualFetch(fetchTargetUrl, originalUrlForCache, storageKey);
+                performActualFetch(vnId, originalInputForCacheKey, storageKey);
             }
         });
 
-        // --- Initialize ---
         loadSettings(); 
         saveSettingsButton.addEventListener('click', saveSettings);
         copyButton.addEventListener('click', copyToClipboard);

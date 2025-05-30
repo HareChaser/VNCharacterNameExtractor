@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Novel Character Name Extractor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for input, textarea and pre for better aesthetics */
+        input::-webkit-scrollbar,
+        textarea::-webkit-scrollbar,
+        pre::-webkit-scrollbar {
+            width: 8px;
+        }
+        input::-webkit-scrollbar-track,
+        textarea::-webkit-scrollbar-track,
+        pre::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        input::-webkit-scrollbar-thumb,
+        textarea::-webkit-scrollbar-thumb,
+        pre::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        input::-webkit-scrollbar-thumb:hover,
+        textarea::-webkit-scrollbar-thumb:hover,
+        pre::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 100; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.5); /* Black w/ opacity */
+            padding-top: 60px;
+            align-items: center; /* For centering modal content */
+            justify-content: center; /* For centering modal content */
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto; /* Adjusted for flex centering */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+            text-align: center;
+            position: relative; /* For close button positioning */
+        }
+        .modal-close {
+            color: #aaa;
+            position: absolute; /* Position relative to modal-content */
+            top: 10px;
+            right: 15px;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .modal-close:hover,
+        .modal-close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        /* Loading spinner */
+        .loader {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #3498db; /* Blue */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+
+    <div class="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-3xl">
+        <header class="mb-6 sm:mb-8 text-center">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-800">Visual Novel Character Name Extractor</h1>
+            <p class="text-gray-600 mt-2">Enter a VNDB visual novel ID, URL, or character page URL to extract names and genders.</p>
+        </header>
+
+        <main>
+            <div class="mb-6">
+                <label for="vndbUrl" class="block text-sm font-medium text-gray-700 mb-1">
+                    VNDB ID or URL:
+                </label>
+                <input type="text" id="vndbUrl" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out" placeholder="e.g., 16845, v16845, or https://vndb.org/v16845">
+                 <p class="text-xs text-gray-500 mt-2">
+                    You can enter a VN ID (e.g., 16845), a full VN URL, or a direct character page URL (.../chars).
+                </p>
+            </div>
+
+            <div class="text-center mb-6">
+                <button id="extractButton" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 transition duration-150 ease-in-out transform hover:scale-105">
+                    Extract Character Info
+                    <span id="loadingSpinner" class="loader" style="display: none;"></span>
+                </button>
+            </div>
+
+            <div>
+                <h2 class="text-xl sm:text-2xl font-semibold text-gray-700 mb-3">Extracted Information:</h2>
+                <pre id="results" class="bg-gray-50 p-4 rounded-lg border border-gray-200 h-64 overflow-y-auto text-sm whitespace-pre-wrap break-words"></pre>
+            </div>
+
+            <div class="mt-8 pt-6 border-t border-gray-200">
+                <h2 class="text-xl sm:text-2xl font-semibold text-gray-700 mb-4">Output Options</h2>
+
+                <div class="mb-4">
+                    <label for="templateText" class="block text-sm font-medium text-gray-700 mb-1">Template:</label>
+                    <textarea id="templateText" rows="4" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out" placeholder="Enter your template text here. Extracted info will be appended on a new line."></textarea>
+                </div>
+
+                <div class="mb-6 flex items-center">
+                    <input type="checkbox" id="includeTemplateCheckbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                    <label for="includeTemplateCheckbox" class="ml-2 block text-sm text-gray-900">Include template in output</label>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="fileNameInput" class="block text-sm font-medium text-gray-700 mb-1">Filename (e.g., MyGame_Characters, .txt will be added):</label>
+                    <input type="text" id="fileNameInput" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out" placeholder="Default: [GameTitle]_Characters">
+                </div>
+
+                <div class="flex flex-col sm:flex-row sm:space-x-4 space-y-3 sm:space-y-0 mb-6">
+                    <button id="copyButton" class="w-full sm:w-auto flex-grow bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition duration-150 ease-in-out">
+                        Copy to Clipboard
+                    </button>
+                    <button id="saveFileButton" class="w-full sm:w-auto flex-grow bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-150 ease-in-out">
+                        Save to File
+                    </button>
+                </div>
+            </div> </main>
+        
+        <footer class="mt-8 text-center border-t border-gray-200 pt-6">
+            <p class="text-xs text-gray-500">Note: This tool relies on fetching external content and parsing its HTML. Changes in VNDB's page structure or the availability of the CORS proxy might affect its functionality. Cached data is stored in your browser.</p>
+             <div class="mt-4">
+                <button id="saveSettingsButton" class="bg-gray-400 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md text-xs focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-opacity-50 transition duration-150 ease-in-out">
+                    Save Settings
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <div id="messageModal" class="modal" style="display:none;"> <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('messageModal')">&times;</span>
+            <p id="modalMessageText" class="text-gray-700"></p>
+            <button onclick="closeModal('messageModal')" class="mt-4 bg-indigo-500 text-white py-2 px-4 rounded-lg hover:bg-indigo-600 transition duration-150">OK</button>
+        </div>
+    </div>
+
+    <div id="confirmLoadModal" class="modal" style="display:none;"> <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('confirmLoadModal')">&times;</span>
+            <p id="confirmLoadMessageText" class="text-gray-700 mb-4"></p>
+            <div class="flex flex-col sm:flex-row justify-around space-y-3 sm:space-y-0 sm:space-x-3">
+                <button id="loadFromCacheButton" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg w-full sm:w-auto">Load from Cache</button>
+                <button id="fetchOnlineButton" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg w-full sm:w-auto">Fetch Online</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // Get DOM elements
+        const urlInput = document.getElementById('vndbUrl');
+        const extractButton = document.getElementById('extractButton');
+        const resultsPre = document.getElementById('results');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+
+        // Modals
+        const messageModal = document.getElementById('messageModal');
+        const modalMessageText = document.getElementById('modalMessageText');
+        const confirmLoadModal = document.getElementById('confirmLoadModal');
+        const confirmLoadMessageText = document.getElementById('confirmLoadMessageText');
+        
+        // Output options elements
+        const templateText = document.getElementById('templateText');
+        const includeTemplateCheckbox = document.getElementById('includeTemplateCheckbox');
+        const copyButton = document.getElementById('copyButton');
+        const fileNameInput = document.getElementById('fileNameInput');
+        const saveFileButton = document.getElementById('saveFileButton');
+        const saveSettingsButton = document.getElementById('saveSettingsButton');
+
+        let currentVNDBGameTitle = ''; 
+
+        // Function to show a specific modal
+        function showModal(modalId, message) {
+            const modal = document.getElementById(modalId);
+            if (modalId === 'messageModal') {
+                modalMessageText.textContent = message;
+            } else if (modalId === 'confirmLoadModal') {
+                confirmLoadMessageText.textContent = message;
+            }
+            if (modal) modal.style.display = 'flex'; // Use flex for centering
+        }
+
+        // Function to close a specific modal
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) modal.style.display = 'none';
+        }
+        
+        window.onclick = function(event) {
+            if (event.target == messageModal) {
+                closeModal('messageModal');
+            }
+        }
+        
+        function setLoading(isLoading) {
+            extractButton.disabled = isLoading;
+            extractButton.classList.toggle('opacity-50', isLoading);
+            extractButton.classList.toggle('cursor-not-allowed', isLoading);
+            loadingSpinner.style.display = isLoading ? 'inline-block' : 'none';
+        }
+
+        function loadSettings() {
+            templateText.value = localStorage.getItem('vndbExtractorTemplate') || '';
+            includeTemplateCheckbox.checked = localStorage.getItem('vndbExtractorIncludeTemplate') === 'true';
+            fileNameInput.value = localStorage.getItem('vndbExtractorFileName') || '';
+        }
+
+        function saveSettings() {
+            localStorage.setItem('vndbExtractorTemplate', templateText.value);
+            localStorage.setItem('vndbExtractorIncludeTemplate', includeTemplateCheckbox.checked);
+            localStorage.setItem('vndbExtractorFileName', fileNameInput.value);
+            showModal('messageModal', 'Settings saved successfully!');
+        }
+
+        function getFinalOutputText() {
+            const extractedInfo = resultsPre.textContent;
+            let finalText = extractedInfo;
+            if (includeTemplateCheckbox.checked) {
+                const templateContent = templateText.value;
+                if (templateContent) {
+                    finalText = templateContent + (extractedInfo ? '\n' + extractedInfo : '');
+                }
+            }
+            return finalText;
+        }
+
+        function copyToClipboard() {
+            const textToCopy = getFinalOutputText();
+            if (!textToCopy && !includeTemplateCheckbox.checked && !resultsPre.textContent) {
+                showModal('messageModal', 'Nothing to copy. Extract some information first.');
+                return;
+            }
+            const textArea = document.createElement("textarea");
+            textArea.value = textToCopy;
+            textArea.style.position = "fixed"; 
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showModal('messageModal', 'Content copied to clipboard!');
+            } catch (err) {
+                console.error('Failed to copy: ', err);
+                showModal('messageModal', 'Failed to copy to clipboard. See console for details.');
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function saveToFile() {
+            const textToSave = getFinalOutputText();
+             if (!textToSave && !includeTemplateCheckbox.checked && !resultsPre.textContent) {
+                showModal('messageModal', 'Nothing to save. Extract some information first.');
+                return;
+            }
+            let filename = fileNameInput.value.trim();
+            if (!filename) {
+                filename = (currentVNDBGameTitle || "VNDB_Export") + "_Characters";
+            }
+            filename = filename.replace(/\.txt$/i, "") + ".txt"; 
+            const blob = new Blob([textToSave], { type: 'text/plain;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href); 
+            showModal('messageModal', `Content prepared for download as ${filename}`);
+        }
+
+        function getStorageKey(url) {
+            try {
+                const parsedUrl = new URL(url); // Expects a full, valid URL
+                const pathname = parsedUrl.pathname;
+                // Match /vXXXX or /cXXXX at the start of the pathname
+                const vMatch = pathname.match(/^\/(v\d+)/);
+                if (vMatch && vMatch[1]) return `vndb-cache-${vMatch[1]}`;
+                const cMatch = pathname.match(/^\/(c\d+)/);
+                if (cMatch && cMatch[1]) return `vndb-cache-${cMatch[1]}`;
+                
+                // Fallback for URLs that might be just domain + ID, e.g. after ID-only input
+                // This part might be redundant if `processedUrl` is always a full path by now
+                const idOnlyMatch = pathname.match(/^\/([vc]\d+)$/);
+                if (idOnlyMatch && idOnlyMatch[1]) return `vndb-cache-${idOnlyMatch[1]}`;
+
+                console.warn("Could not derive a v/c ID from path for storage key:", pathname);
+                return null; 
+            } catch (e) {
+                console.error("Error parsing URL for storage key:", url, e);
+                return null;
+            }
+        }
+        
+        function updateFileNameInputBasedOnGameTitle() {
+            if (currentVNDBGameTitle && currentVNDBGameTitle !== "VNDB_Export") {
+                fileNameInput.value = currentVNDBGameTitle + "_Characters";
+            } else {
+                const currentFileNameVal = fileNameInput.value.trim();
+                if (!currentFileNameVal || currentFileNameVal === "VNDB_Export_Characters") {
+                    fileNameInput.value = "VNDB_Export_Characters";
+                }
+            }
+        }
+
+        async function performActualFetch(urlToFetch, originalProcessedUrlForCache, storageKeyToUse) {
+            setLoading(true);
+            resultsPre.textContent = ''; 
+            const proxyUrl = 'https://api.allorigins.win/raw?url='; 
+            const fullFetchUrl = proxyUrl + encodeURIComponent(urlToFetch);
+
+            try {
+                const response = await fetch(fullFetchUrl);
+                if (!response.ok) {
+                    let errorText = `Failed to fetch URL: ${response.status} ${response.statusText}.`;
+                    try {
+                        const errorData = await response.json(); 
+                        if (errorData && errorData.error) {
+                            errorText += ` Proxy error: ${errorData.error}`;
+                        } else if (errorData && errorData.contents) {
+                            const innerStatus = JSON.parse(errorData.contents)?.status?.http_code;
+                            if (innerStatus === 403) errorText += ` The target server (VNDB) may be blocking this proxy (HTTP 403).`;
+                            else if (innerStatus === 404) errorText += ` The target page was not found on VNDB (HTTP 404). Check the URL.`;
+                        }
+                    } catch (e) { 
+                        const responseText = await response.text();
+                         if (responseText.includes("Cloudflare") || responseText.includes("Access denied")) {
+                            errorText += " Access to VNDB via proxy may be blocked by security measures (e.g., Cloudflare).";
+                         }
+                    }
+                    errorText += " The CORS proxy might be down, rate-limiting, or the URL is inaccessible/blocking the proxy.";
+                    throw new Error(errorText);
+                }
+                const htmlContent = await response.text();
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = htmlContent;
+
+                let extractedGameTitleFull = 'VNDB_Export'; 
+                let mainTitleElement = tempDiv.querySelector('div.titlebar > h1 > a[href^="/v"]'); 
+                if (!mainTitleElement) mainTitleElement = tempDiv.querySelector('div.charpage > div > h1 > a[href^="/v"]');
+                if (!mainTitleElement) mainTitleElement = tempDiv.querySelector('h1.لیکنه'); 
+                if (mainTitleElement && mainTitleElement.textContent) {
+                     extractedGameTitleFull = mainTitleElement.textContent.trim();
+                } else { 
+                    const titleTag = tempDiv.querySelector('title');
+                    if (titleTag && titleTag.textContent) {
+                        let pageTitle = titleTag.textContent.trim();
+                        const vndbSuffix = "(vndb.org)";
+                        if (pageTitle.endsWith(vndbSuffix)) pageTitle = pageTitle.substring(0, pageTitle.length - vndbSuffix.length).trim();
+                        const charsFromPrefix = "Characters from ";
+                        if (pageTitle.startsWith(charsFromPrefix)) extractedGameTitleFull = pageTitle.substring(charsFromPrefix.length).trim();
+                        else {
+                            const charPageSuffix = " - Characters"; 
+                            if (pageTitle.endsWith(charPageSuffix)) extractedGameTitleFull = pageTitle.substring(0, pageTitle.length - charPageSuffix.length).trim();
+                            else extractedGameTitleFull = pageTitle; 
+                        }
+                    }
+                }
+                currentVNDBGameTitle = extractedGameTitleFull.replace(/[<>:"/\\|?*]+/g, '').replace(/\s+/g, '_');
+                
+                const charDetailDivs = tempDiv.querySelectorAll('div.chardetails, div.charbox'); 
+                if (charDetailDivs.length === 0) {
+                    showModal('messageModal', 'No character details found. Ensure the URL is correct, the page has character data, or the proxy retrieved the page correctly.');
+                    setLoading(false); return;
+                }
+                let outputText = '';
+                let charactersFound = 0;
+                charDetailDivs.forEach(charDiv => {
+                    let japNameElement, romajiNameElement, genderElement;
+                    let tableHeaderTd = charDiv.querySelector('table.stripe > thead > tr > td');
+                    if (tableHeaderTd) {
+                        japNameElement = tableHeaderTd.querySelector('small[lang="ja"]');
+                        romajiNameElement = tableHeaderTd.querySelector('a[lang="ja-Latn"]');
+                        genderElement = tableHeaderTd.querySelector('abbr[title^="Sex:"]');
+                    }
+                    if (!romajiNameElement && charDiv.classList.contains('charbox')) {
+                        const charNameDiv = charDiv.querySelector('.charname');
+                        if (charNameDiv) {
+                            romajiNameElement = charNameDiv.querySelector('a'); 
+                            japNameElement = charNameDiv.querySelector('small[lang="ja"]');
+                        }
+                        const charInfoDiv = charDiv.closest('.charpage')?.querySelector('.charinfo'); 
+                        if (charInfoDiv) {
+                            const sexInfoNode = Array.from(charInfoDiv.querySelectorAll('tr > td')).find(td => td.textContent.trim().startsWith("Sex"));
+                            if (sexInfoNode && sexInfoNode.nextElementSibling) {
+                                const genderText = sexInfoNode.nextElementSibling.textContent.trim();
+                                if (genderText.includes("Female") || genderText.includes("♀")) genderElement = { getAttribute: () => "Sex: female" };
+                                else if (genderText.includes("Male") || genderText.includes("♂")) genderElement = { getAttribute: () => "Sex: male" };
+                                else genderElement = { getAttribute: () => "Sex: unknown" };
+                            }
+                        }
+                    }
+
+                    if (romajiNameElement) { 
+                        const romajiName = romajiNameElement.textContent.trim();
+                        const japName = japNameElement ? japNameElement.textContent.trim() : "(N/A)";
+                        let gender = 'unknown';
+                        if (genderElement) {
+                            const genderTitle = genderElement.getAttribute('title'); 
+                            if (genderTitle) {
+                                const genderMatch = genderTitle.match(/Sex: (\w+)/i); 
+                                if (genderMatch && genderMatch[1]) gender = genderMatch[1].toLowerCase();
+                            }
+                        }
+                        const displayRomajiName = romajiName; 
+                        const romajiParts = romajiName.split(' ').filter(part => part.length > 0); 
+                        let nameForGenderSentence;
+                        if (romajiParts.length === 0) nameForGenderSentence = romajiName; 
+                        else if (romajiParts.length === 1) nameForGenderSentence = romajiParts[0]; 
+                        else {
+                            let isSurnameFirstOrder = true; 
+                            if (japName && japName !== "(N/A)") {
+                                const allKatakanaRegex = /^[\u30A0-\u30FF\uFF66-\uFF9F\u31F0-\u31FF\u30FB\u30FC\s＝=]+$/;
+                                if (allKatakanaRegex.test(japName)) isSurnameFirstOrder = false; 
+                            }
+                            if (isSurnameFirstOrder) nameForGenderSentence = romajiParts.slice(1).join(' ');
+                            else {
+                                nameForGenderSentence = romajiParts[0];
+                                if (nameForGenderSentence.includes('-')) nameForGenderSentence = nameForGenderSentence.split('-')[0];
+                            }
+                        }
+                        if (!nameForGenderSentence || nameForGenderSentence.trim() === "") { 
+                            nameForGenderSentence = romajiParts.length > 0 ? romajiParts[0] : romajiName;
+                        }
+                        outputText += `${japName} is called ${displayRomajiName}. ${nameForGenderSentence} is ${gender}.\n`;
+                        charactersFound++;
+                    }
+                });
+
+                if (charactersFound > 0) {
+                    resultsPre.textContent = outputText;
+                    updateFileNameInputBasedOnGameTitle(); 
+                    if (storageKeyToUse) { 
+                        try {
+                            localStorage.setItem(storageKeyToUse, JSON.stringify({
+                                outputText: outputText,
+                                gameTitle: currentVNDBGameTitle,
+                                originalUrl: originalProcessedUrlForCache, // Use the processed full URL for cache
+                                timestamp: new Date().toISOString()
+                            }));
+                        } catch (e) {
+                            console.error("Error saving to localStorage:", e);
+                            showModal('messageModal', "Could not save data to local cache. Storage might be full.");
+                        }
+                    }
+                } else {
+                    showModal('messageModal', 'Could not extract character information from the fetched content.');
+                }
+
+            } catch (error) {
+                console.error('Error during fetch or parsing:', error);
+                resultsPre.textContent = `Error: ${error.message}`;
+                showModal('messageModal', `An error occurred: ${error.message}.`);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+
+        extractButton.addEventListener('click', async () => { 
+            const userInput = urlInput.value.trim(); 
+            if (!userInput) {
+                showModal('messageModal', 'Please enter a VNDB ID or URL.');
+                return;
+            }
+
+            let processedUrl = userInput;
+            // Check for vXXXXX or XXXXX patterns and construct full URL
+            if (/^v\d+$/.test(userInput)) { // Matches "v12345"
+                processedUrl = `https://vndb.org/${userInput}`;
+            } else if (/^\d+$/.test(userInput)) { // Matches "12345"
+                processedUrl = `https://vndb.org/v${userInput}`;
+            }
+            // Now processedUrl is either a user-entered full URL or a constructed one.
+
+            // Validate the processedUrl format before proceeding
+            try {
+                new URL(processedUrl); 
+                if (!processedUrl.startsWith('https://vndb.org/')) {
+                     showModal('messageModal', 'Invalid input. Please ensure it is a valid VNDB ID (e.g., 12345, v12345) or a full VNDB URL.');
+                     return;
+                }
+            } catch (_) {
+                showModal('messageModal', 'Invalid input format. Please enter a valid VNDB ID or URL.');
+                return;
+            }
+
+            let fetchTargetUrl = processedUrl;
+            let originalUrlForCache = processedUrl; // This is the full URL to store/use for cache key
+
+            try { // Auto-append /chars if necessary to the processed URL
+                const parsedTempUrl = new URL(processedUrl);
+                if (parsedTempUrl.hostname === 'vndb.org' && parsedTempUrl.pathname.match(/^\/v\d+$/)) {
+                    fetchTargetUrl = processedUrl.replace(/\/$/, "") + '/chars';
+                }
+                // If it's already /vXXXX/chars or /cXXXX, fetchTargetUrl remains as processedUrl
+            } catch (_) { /* Should not happen if previous validation passed */ }
+
+            const storageKey = getStorageKey(originalUrlForCache); // Use the processed full URL for key consistency
+            let cachedData = null;
+
+            if (storageKey) {
+                const rawCachedData = localStorage.getItem(storageKey);
+                if (rawCachedData) {
+                    try { cachedData = JSON.parse(rawCachedData); } 
+                    catch (e) { localStorage.removeItem(storageKey); }
+                }
+            }
+
+            if (cachedData && cachedData.outputText && cachedData.gameTitle) {
+                showModal('confirmLoadModal', "Previously extracted data found for this ID/URL. Load from cache or fetch fresh data online?");
+                
+                const loadCacheBtn = document.getElementById('loadFromCacheButton');
+                const fetchOnlineBtn = document.getElementById('fetchOnlineButton');
+
+                const newLoadCacheBtn = loadCacheBtn.cloneNode(true);
+                loadCacheBtn.parentNode.replaceChild(newLoadCacheBtn, loadCacheBtn);
+                newLoadCacheBtn.onclick = () => {
+                    closeModal('confirmLoadModal');
+                    resultsPre.textContent = cachedData.outputText;
+                    currentVNDBGameTitle = cachedData.gameTitle;
+                    urlInput.value = cachedData.originalUrl || originalUrlForCache; // Restore original processed URL
+                    updateFileNameInputBasedOnGameTitle();
+                    showModal('messageModal', 'Data loaded from cache.');
+                    setLoading(false); 
+                };
+
+                const newFetchOnlineBtn = fetchOnlineBtn.cloneNode(true);
+                fetchOnlineBtn.parentNode.replaceChild(newFetchOnlineBtn, fetchOnlineBtn);
+                newFetchOnlineBtn.onclick = () => {
+                    closeModal('confirmLoadModal');
+                    performActualFetch(fetchTargetUrl, originalUrlForCache, storageKey);
+                };
+
+            } else {
+                performActualFetch(fetchTargetUrl, originalUrlForCache, storageKey);
+            }
+        });
+
+        // --- Initialize ---
+        loadSettings(); 
+        saveSettingsButton.addEventListener('click', saveSettings);
+        copyButton.addEventListener('click', copyToClipboard);
+        saveFileButton.addEventListener('click', saveToFile);
+    </script>
+</body>
+</html>
